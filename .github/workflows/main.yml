@@ -1,0 +1,30 @@
+name: Build APK
+on:
+  push:
+    branches: [main, master]
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: 8.9
+      - name: Ekstrak proyek
+        run: unzip -q project.zip -d app_src
+      - name: Build APK
+        run: gradle -p app_src assembleDebug --no-daemon
+      - name: Terbitkan APK
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cp app_src/app/build/outputs/apk/debug/app-debug.apk JamAlarm.apk
+          gh release delete latest --yes --cleanup-tag || true
+          gh release create latest JamAlarm.apk --title "Jam Alarm (terbaru)" --notes "Unduh JamAlarm.apk lalu pasang di HP." --target "$GITHUB_SHA"
